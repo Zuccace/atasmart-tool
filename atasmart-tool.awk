@@ -75,7 +75,7 @@ function createsmartdata(disk,format) {
 			# However, we're trying our best to avoid little changes.
 			if ($1 == "ID#") {attrlist = 1; continue}
 			if (attrlist) {
-				if ($1 ~ /^(1|5|7|1[013]|18[12478]|19[6789]|201|250)$/) {
+				if ($1 ~ /^(1|5|7|1[013]|18[12478]|19[6789]|201|250)$/) { # <-- smart attributes to watch on.
 					name = $2
 					for (i=1; i<=5; i++) $i = ""
 					sub(/^\s+/,"")
@@ -134,14 +134,11 @@ function printprogress() {
 }
 
 BEGIN {
-
-	#print exec2file("echo 'foo bar versus the dea'",mktempfile())
-	#exit
-
 	version = "0.0.1-alpha"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
+	# Better versions/methods are welcome. ;)
 	# Also PROCINFO["argv"] was empty. Maybe some security feature?
 	split(ENVIRON["_"],thispath,"/")
 	this = thispath[length(thispath)]
@@ -174,10 +171,6 @@ BEGIN {
 	report = 0
 
 	for (i = 1; i < ARGC; i++) {
-		#print "DEBUG first loop: i = " i
-		#print "DEBUG first loop: ARGV[i] = " ARGV[i]
-		#print "DEBUG first loop: substr = " substr(ARGV[i],1,1)
-
 		arg = ARGV[i]
 
 		if ( substr(arg,1,1) != "-" ) break
@@ -217,9 +210,6 @@ BEGIN {
 
 	if (ARGV[i] == "") errexit("No devices specified.")
 
-	#print createsmartdata(ARGV[i])
-	#exit
-
 	if (logformat) diffcmd = "diff --color=never --text --suppress-common-lines"
 	else diffcmd = "diff --color=always --text --suppress-common-lines"
 
@@ -231,16 +221,15 @@ BEGIN {
 	while (i < ARGC) {
 		device = ARGV[i]
 		if (issmart(device)) {
-			devices[device]["progress"] = 110
+			devices[device]["progress"] = 100 + gap + 1
 			j++
 		} else warn("Skipping '" device "' since it does not seem have smart capabilities...")
 		i++
 	}
-	if (j == 1) errexit("No single suitable device left. Exiting...")
+	if (j == 1) errexit("Not a single suitable device left. Exiting...")
 	numdevices = j - 1
 
-	if (tt == "") {
-		# Only dump smart data and exit.
+	if (tt == "") { # Only dump smart data and exit.
 		for (i = 1; i < ARGC; i++) {
 			print ""
 			if (system(skdump " " ARGV[i]) > 0) e = 1
@@ -257,11 +246,7 @@ BEGIN {
 
 		# Run the tests:
 		for (device in devices) system(sktest " " device " " tt)
-	} else { # We're just monitoring
-		counttotsize()
-		#print totmbytes " MB"
-		#exit
-	}
+	} else counttotsize() # We're just monitoring smart tests.
 
 	while (1) {
 		totprogress = 0
@@ -278,7 +263,6 @@ BEGIN {
 				}
 			}	
 			totprogress += ( 100 - P ) * devices[device]["size"] / totmbytes
-			#print totprogress "%"
 		}
 		if (refresh) {
 			printf "\033c" # VT100 command to reset/clear terminal.
