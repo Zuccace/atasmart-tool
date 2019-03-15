@@ -9,15 +9,21 @@ function errexit(msg) {
 	exit 0
 }
 
+function escapebad(string) {
+	# For shell...
+	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
+	return string
+}
+
 function mktempfile() {
-	"mktemp --tmpdir \"" this ".XXXXXX.tmp\"" | getline
-	close("mktemp --tmpdir \"" this ".XXXXXX.tmp\"")
+	"mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\"" | getline
+	close("mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\"")
 	return $0
 }
 
 function issmart(disk) {
-	disk = gensub(/[^\/A-Za-z0-9]/, "\\\\&", "g", disk)
-	if (system("test -r \"" disk "\"") == 0) {
+	safedisk = escapebad(disk)
+	if (system("test -r \"" safedisk "\"") == 0) {
 		skdump " --can-smart \"" disk "\" 2> /dev/null" | getline answer
 		close(skdump " --can-smart " disk)
 		if (answer == "YES") return 1
@@ -27,34 +33,95 @@ function issmart(disk) {
 		}
 	} else {
 		warn("Cannot read '" disk "'. Do you have permissions?")
-		return 0
+                return 0
 	}
 }
 
-function createsmartdata(disk) {
-	datafile = mktempfile()
-	if (system("test -f \"" datafile "\"") == 0) {
-		actions = "overall status bad"
-		split(actions,aa)
-		for (an in aa) {
-			action = aa[an]
-			printf "%s",action ": " >> datafile
-			cmd = skdump " --" action " \"" disk "\" >> \"" datafile "\""
-			if (system(cmd) > 0) warn("Command: " cmd "\n ... exit status > 0.")
+# This is a bad function. Needs to go.
+function exec2file(cmd,file) {
+	#safefile = escapebad(file)
+	if (system("test -w \"" file "\"") == 0) {
+		if (system(cmd " >> " file) == 0) return file
+		else {
+			return 0
 		}
-		return datafile
+	} else return 0
+}
+
+function counttotsize() {
+	for (device in devices) {
+		while ((skdump " " device | getline) > 0) {
+			if ($1 == "Size:") {
+				mbytes = $2
+				break
+			}
+		}
+		close(skdump " " device)
+		totmbytes += mbytes
+		devices[device]["size"] = mbytes
 	}
-	else warn("Failed to create smart data dump file: '" datafile "'")
+}
+
+function createsmartdata(disk,format) {
+	datafile = mktempfile()
+	if (format == "full") {
+		cmd = skdump " \"" disk "\""
+		if (exec2file(cmd,datafile) == 0) warn("Command: " cmd "\n ... exit status > 0.")
+        } else {
+        	attrlist = 0
+        	while (skdump " " disk | getline) {
+        		# This is certainly a hack to parse the output of skdump.
+        		# What's worse, the output of skdump might change.
+			# However, we're trying our best to avoid little changes.
+			if ($1 == "ID#") {attrlist = 1; continue}
+			if (attrlist) {
+				if ($1 ~ /^(1|5|7|1[013]|18[12478]|19[6789]|201|250)$/) {
+					name = $2
+					for (i=1; i<=5; i++) $i = ""
+					sub(/^\s+/,"")
+					pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
+					#type = substr($0,RSTART + RLENGTH + 1,7)
+				}
+
+			} else {
+				name = tolower(substr($0,1,match($0,/:/) - 1))
+				gsub(/\s+/,"_",name)
+				switch (name) {
+					case "size":
+						pretty = $2
+						break
+					case "overall_status":
+						name = "status"
+						pretty = $3
+						break
+					case /^(model|powered_on)$/:
+						pretty = substr($0,match($0,/:/) + 2)
+						break
+					case "bad_sectors":
+						pretty = $3
+						break
+						
+				}
+				if (pretty != "") devices[disk][name] = pretty
+			}
+			if (pretty != "") print name,pretty >> datafile
+			name = ""
+			pretty = ""
+        	}
+        	close(skdump " " disk)
+        }
+	return datafile
 }
 
 function testprogress(disk) {
 	pollcmd = skdump " " disk
-	while ((pollcmd | getline) > 0) { # No need for 'dump' variable here... TODO.
+	while ((pollcmd | getline) > 0) {
 		if (/^Percent Self-Test Remaining: /) {
 			close(pollcmd)
 			break
 		}
 	}
+    close(pollcmd)
 	lf = $NF
 	sub(/%/,"",lf)
 	return strtonum(lf)
@@ -62,11 +129,14 @@ function testprogress(disk) {
 
 function printprogress() {
 	printf "\033c" # VT100 command to reset/clear terminal.
-	for (disk in progress) print disk ":\t" 100 - progress[disk] "%"
-	print "\nTotal:\t\t" 100 - totremain / numdevices "%"
+	for (device in devices) print device ":\t" 100 - devices[device]["progress"] "%"
+	print "\nTotal:\t\t" totprogress / totmbytes * 100 "%"
 }
 
 BEGIN {
+
+	#print exec2file("echo 'foo bar versus the dea'",mktempfile())
+	#exit
 
 	version = "0.0.1-alpha"
 
@@ -117,7 +187,7 @@ BEGIN {
 		} else if (arg == "--help") {
 			print "atasmart-tool v. " version " -- Ilja Sara"
 			print "Small wrapper around skdump and sktest, S.M.A.R.T. -tools.\n\n"
-			print this " [--test <short|long|extended|monitor> [--gap <{1..100}>] [--sleep <n>] [--log] [--summary]] <device> [device2] .. [deviceN]"
+			print this " [--test <short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--summary]] <device> [device2] .. [deviceN]"
 			print "Without --test the action is 'monitor', unless no test is running then it's same as running 'skdump' without arguments on device(s)\n"
 			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same." 
 			print "--gap <n>\n\tdetermines the interval at which to print the progress percentage status. Default: " gap "%. Set to 0 to disable printing progress indicator."
@@ -128,7 +198,7 @@ BEGIN {
 		} else if (arg == "--test") {
 			i++
 			tt = ARGV[i]
-			if (tt !~ /short|long|monitor/) errexit("--test only accepts 'short', 'long', 'extended' or 'monitor 'as an argument.")
+			if (tt !~ /quick|short|long|monitor/) errexit("--test only accepts 'quick', 'short', 'long', 'extended' or 'monitor 'as an argument.")
 		} else if (arg == "--gap") {
 			i++
 			gap = strtonum(ARGV[i])
@@ -153,81 +223,81 @@ BEGIN {
 	if (logformat) diffcmd = "diff --color=never --text --suppress-common-lines"
 	else diffcmd = "diff --color=always --text --suppress-common-lines"
 
+	"mktemp -d --tmpdir \"" this ".XXXXXX.tmp\"" | getline tmpdir
+        close("mktemp -d --tmpdir \"" this ".XXXXXX.tmp\"" )
+
 	# Create an array of devices and set starting value for progress.
 	j = 1
 	while (i < ARGC) {
-		#print "DEBUG second loop: ARGV[i] " ARGV[i]
 		device = ARGV[i]
 		if (issmart(device)) {
-			devlist[j] = device
-			#print devlist[j]
-			progress[devlist[j]] = 110
+			devices[device]["progress"] = 110
 			j++
-		} else warn("Skipping '" device "'...")
+		} else warn("Skipping '" device "' since it does not seem have smart capabilities...")
 		i++
 	}
 	if (j == 1) errexit("No single suitable device left. Exiting...")
 	numdevices = j - 1
 
 	if (tt == "") {
+		# Only dump smart data and exit.
 		for (i = 1; i < ARGC; i++) {
 			print ""
 			if (system(skdump " " ARGV[i]) > 0) e = 1
 		}
-		if (e) errexit("Some/all skdump prcesses exited with non-zero exit code")
+		if (e) errexit("Some/all skdump processes exited with non-zero exit code")
 		exit 1
-	} else if (tt ~ /short|long|extended/) {
+	} else if (tt ~ /^(quick|short|long|extended)$/) {
 		if (tt == "long") tt = "extended"
-
-		if (report) for (d in devlist) smart_data[devlist[d]] = createsmartdata(devlist[d])
+		else if (tt == "quick") tt = "short"
+		if (report) for (device in devices) {
+			devices[device]["datafile"] = createsmartdata(device)
+			totmbytes += devices[device]["size"]
+		} else counttotsize()
 
 		# Run the tests:
-		for (d in devlist) system(sktest " " devlist[d] " " tt)
+		for (device in devices) system(sktest " " device " " tt)
+	} else { # We're just monitoring
+		counttotsize()
+		#print totmbytes " MB"
+		#exit
 	}
 
 	while (1) {
-		totremain = 0
-		for (d in devlist) {
-			device = devlist[d]
-			P = progress[device]
+		totprogress = 0
+		for (device in devices) {
+			P = devices[device]["progress"]
 			if (P > 0) {
 				left = testprogress(device)
 				if (gap == 0) P = left
-				else if (left <= P - gap) { 
+				else if (left <= P - gap || left == 0 && left < P) { 
 					P = left
-					progress[device] = left
-					if (logformat && P <= 100) print device ": " 100 - P "%"
+					devices[device]["progress"] = left
+					if (logformat) print device ": " 100 - P "%"
 					else refresh = 1
 				}
 			}	
-			totremain += P
+			totprogress += ( 100 - P ) * devices[device]["size"] / totmbytes
+			#print totprogress "%"
 		}
 		if (refresh) {
-			printprogress()
+			printf "\033c" # VT100 command to reset/clear terminal.
+			for (device in devices) print device ":\t" 100 - devices[device]["progress"] "%"
+			print "\nTotal:\t\t" totprogress "%"
 			refresh = 0
 		}
-		if (totremain <= 0) break
+		if (totprogress >= 100) break
 		system("sleep " sleep "s") # I guess awk can't do any better...
 	}
 
-	if (report && tt ~ /short|long|extended/) {
-		for (d in devlist) {
-			device = devlist[d]
-			new_smart_data[device] = createsmartdata(device)
-			skdump " --power-on " device | getline pwronmsec
-			close(skdump " --power-on " device)
-			print "\n --== Device " device " - age: " pwronmsec / 1000 / 60 / 60 / 24 " days ==--"
+	if (report && tt != "monitor") {
+		for (device in devices) {
+			devices[device]["newdatafile"] = createsmartdata(device)
+			print "\nDevice: " device " " devices[device]["model"] " - Status:" devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
 			print "smartdiff (if any):"
-			system(diffcmd " \"" smart_data[device] "\" \"" new_smart_data[device] "\"")
-			while (getline < new_smart_data[device] > 0) {
-				if ($1 == "bad" && $2 > 0) {
-					print "WARNING: bad sector count - " $2
-					break
-				}
-			}
-			close(new_smart_data[device])
-			system("rm \"" smart_data[device] "\" \"" new_smart_data[device] "\"")
+			system(diffcmd " \"" devices[device]["datafile"] "\" \"" devices[device]["newdatafile"] "\"")
 		}
 	}
+	system("rm -r " tmpdir)
 	exit 1
 }
