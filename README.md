@@ -8,7 +8,7 @@
 	chmod +x atasmart-tool.awk
 	./atasmart-tool.awk --help
 #### Note
-The total percentage of process calculated in such way that bigger capacity disks have more weight to the total % of the process. So that's why the numbers may seem incorrect.
+The total percentage of process is calculated in such way that **bigger capacity disks have more weight to the total %** of the process. So that's why the numbers may seem incorrect.
 
 ### About
 * [Why?](https://pluspora.com/posts/f61ba1c025c70137cf9f005056264835)
