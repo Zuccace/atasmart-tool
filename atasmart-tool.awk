@@ -277,7 +277,7 @@ BEGIN {
 	if (report && tt != "monitor") {
 		for (device in devices) {
 			devices[device]["newdatafile"] = createsmartdata(device)
-			print "\nDevice: " device " " devices[device]["model"] " " devices[device]["size"] / 1024 "GB - Status:" devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
+			print "\nDevice: " device " " devices[device]["model"] " " devices[device]["size"] / 1024 "GB - Status: " devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
 			print "smartdiff (if any):"
 			system(diffcmd " \"" devices[device]["datafile"] "\" \"" devices[device]["newdatafile"] "\"")
 		}
