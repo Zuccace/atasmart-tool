@@ -17,6 +17,7 @@ The total percentage of process is calculated in such way that **bigger capacity
 
 ### TODO -list  
 * Gather more information at the start and end of test(s) and warn user if something alarming is found. - Almost done.
+* Report changes in smart data via internal function instead of using `diff` in a form of "Value X has changed from Y to Z".
 
 ### License
 GPL-3
