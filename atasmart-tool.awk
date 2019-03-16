@@ -70,8 +70,7 @@ function createsmartdata(disk,format) {
         	while (skdump " " disk | getline) {
         		# This is certainly a hack to parse the output of skdump.
         		# What's worse, the output of skdump might change.
-			# However, we're trying our best to avoid little changes.
-			if ($1 == "ID#") {attrlist = 1; continue}
+				# However, we're trying our best to avoid little changes.
 			if (attrlist) {
 				if ($1 ~ /^(1|5|7|1[013]|18[12478]|19[6789]|201|250)$/) { # <-- smart attributes to watch on.
 					name = $2
@@ -80,8 +79,12 @@ function createsmartdata(disk,format) {
 					pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
 					#type = substr($0,RSTART + RLENGTH + 1,7)
 				}
-
-			} else {
+			}
+			else if ($1 == "ID#") {
+				attrlist = 1
+				continue
+			}
+		 	else {
 				name = tolower(substr($0,1,match($0,/:/) - 1))
 				gsub(/\s+/,"_",name)
 				switch (name) {
