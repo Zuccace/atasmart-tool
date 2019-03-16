@@ -22,11 +22,9 @@ function mktempfile() {
 }
 
 function issmart(disk) {
-	safedisk = escapebad(disk)
-	if (system("test -r \"" safedisk "\"") == 0) {
-		skdump " --can-smart \"" disk "\" 2> /dev/null" | getline answer
-		close(skdump " --can-smart " disk)
-		if (answer == "YES") return 1
+	#safedisk = escapebad(disk)
+	if (system("test -r \"" disk "\"") == 0) {
+		if (system(skdump " --can-smart \"" disk "\" > /dev/null 2>&1") == 0) return 1
 		else {
 			warn("Device '" disk "' isn't smart capable.")
 			return 0
@@ -223,7 +221,7 @@ BEGIN {
 		if (issmart(device)) {
 			devices[device]["progress"] = 100 + gap + 1
 			j++
-		} else warn("Skipping '" device "' since it does not seem have smart capabilities...")
+		} else warn("Skipping '" device "'...")
 		i++
 	}
 	if (j == 1) errexit("Not a single suitable device left. Exiting...")
