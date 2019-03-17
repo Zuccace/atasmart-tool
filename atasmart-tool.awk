@@ -117,15 +117,17 @@ function createsmartdata(disk,format) {
 function testprogress(disk) {
 	pollcmd = skdump " " disk
 	while ((pollcmd | getline) > 0) {
-		if (/^Percent Self-Test Remaining: /) {
-			close(pollcmd)
-			break
-		}
+		if (/^Percent Self-Test Remaining: /) break
 	}
     close(pollcmd)
-	lf = $NF
+	lf = strtonum($NF)
 	sub(/%/,"",lf)
-	return strtonum(lf)
+
+    # Since Progress varies from 90 to 0 (% left)
+    # We'll convert the 90 step (9 really) into percents
+    # what is what the rest of the script expects.
+
+	return lf * ( 1 / 0.9 )
 }
 
 function printprogress() {
@@ -259,7 +261,7 @@ BEGIN {
 				else if (left <= P - gap || left == 0 && left < P) { 
 					P = left
 					devices[device]["progress"] = left
-					if (logformat) print device ": " 100 - P "%"
+					if (logformat) print device ": %2d%%",100 - P
 					else refresh = 1
 				}
 			}	
@@ -267,8 +269,8 @@ BEGIN {
 		}
 		if (refresh) {
 			printf "\033c" # VT100 command to reset/clear terminal.
-			for (device in devices) print device ":\t" 100 - devices[device]["progress"] "%"
-			print "\nTotal:\t\t" totprogress "%"
+			for (device in devices) printf device ":\t%2d%%\n",100 - devices[device]["progress"]
+			printf "\nTotal:\t\t%3d%%\n\n",totprogress
 			refresh = 0
 		}
 		if (totprogress >= 100) break
