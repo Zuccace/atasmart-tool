@@ -1,5 +1,8 @@
 #!/usr/bin/gawk --exec
 
+# vim: set noet ci pi sts=0 sw=4 ts=4 : 
+
+
 function warn(msg) {
 	print "ERROR: " msg > "/dev/stderr"
 }
