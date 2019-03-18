@@ -174,7 +174,7 @@ BEGIN {
 	sktest = "sktest"
 	sleep = 5
 	gap = 5
-	report = 0
+	report = 1
 
 	for (i = 1; i < ARGC; i++) {
 		arg = ARGV[i]
@@ -186,13 +186,13 @@ BEGIN {
 		} else if (arg == "--help") {
 			print "atasmart-tool v. " version " -- Ilja Sara"
 			print "Small wrapper around skdump and sktest, S.M.A.R.T. -tools.\n\n"
-			print this " [--test <short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--summary]] <device> [device2] .. [deviceN]"
+			print this " [--test <short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--[no-]summary]] <device> [device2] .. [deviceN]"
 			print "Without --test the action is 'monitor', unless no test is running then it's same as running 'skdump' without arguments on device(s)\n"
 			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same." 
 			print "--gap <n>\n\tdetermines the interval at which to print the progress percentage status. Default: " gap "%. Set to 0 to disable printing progress indicator."
 			print "--sleep <n>\n\tTime to sleep in seconds between pollings."
 			print "--log\n\tChanges output to log friendly format."
-			print "--summary\n\tPrint report at the end of test. Note: with '--test monitor' report printing is always disabled, since " this " can't know the smart values before the test(s) were started."
+			print "--[no-]summary\n\tPrint (or omit) report at the end of test. Note: with '--test monitor' report printing is always disabled, since " this " can't know the smart values before the test(s) were started."
 			exit 1
 		} else if (arg == "--test") {
 			i++
@@ -211,6 +211,7 @@ BEGIN {
 			bar = 0
 		}
 		else if (arg == "--summary") report = 1
+		else if (arg == "--no-summary") report = 0
 		else errexit("I don't know what to do with this '" arg "' -switch of yours. You may need --help. Aborting... :(")
 	}
 
