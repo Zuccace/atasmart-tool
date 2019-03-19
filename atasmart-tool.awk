@@ -19,9 +19,9 @@ function escapebad(string) {
 }
 
 function mktempfile() {
-	"mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\"" | getline
+	"mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\" || echo -n 0" | getline
 	close("mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\"")
-	return $0
+	if ($0 =! "0") return $0; else return 0
 }
 
 function issmart(disk) {
@@ -129,7 +129,6 @@ function testprogress(disk) {
     # Since Progress varies from 90 to 0 (% left)
     # We'll convert the 90 step (9 really) into percents
     # what is what the rest of the script expects.
-
 	return lf * ( 1 / 0.9 )
 }
 
@@ -140,7 +139,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.1-alpha"
+	version = "0.0.1-alpha2"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
@@ -158,7 +157,6 @@ BEGIN {
 		close("/proc/self/cmdline")
 		RS = OLDRS
 	}
-
 
 	if (found == "") this = "atasmart-tool"
 	else {
