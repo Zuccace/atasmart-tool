@@ -191,7 +191,7 @@ BEGIN {
 			print "--sleep <n>\n\tTime to sleep in seconds between pollings."
 			print "--log\n\tChanges output to log friendly format."
 			print "--[no-]summary\n\tPrint (or omit) report at the end of test. Note: with '--test monitor' report printing is always disabled, since " this " can't know the smart values before the test(s) were started."
-			exit 1
+			exit 0
 		} else if (arg == "--test") {
 			i++
 			tt = ARGV[i]
@@ -240,7 +240,7 @@ BEGIN {
 			if (system(skdump " " ARGV[i]) > 0) e = 1
 		}
 		if (e) errexit("Some/all skdump processes exited with non-zero exit code")
-		exit 1
+		exit 0
 	} else if (tt ~ /^(quick|short|long|extended)$/) {
 		if (tt == "long") tt = "extended"
 		else if (tt == "quick") tt = "short"
@@ -288,5 +288,5 @@ BEGIN {
 		}
 	}
 	system("rm -r " tmpdir)
-	exit 1
+	exit 0
 }
