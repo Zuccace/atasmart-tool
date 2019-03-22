@@ -9,7 +9,7 @@ function warn(msg) {
 
 function errexit(msg) {
 	warn(msg)
-	exit 0
+	exit 1
 }
 
 function escapebad(string) {
