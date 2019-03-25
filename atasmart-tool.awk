@@ -94,6 +94,9 @@ function createsmartdata(disk,format) {
 					case "size":
 						pretty = $2
 						break
+					case "serial":
+						pretty = $2
+						gsub(/^\[|\]$/,"",pretty)
 					case "overall_status":
 						name = "status"
 						pretty = $3
