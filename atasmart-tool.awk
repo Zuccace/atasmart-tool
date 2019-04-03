@@ -299,6 +299,6 @@ BEGIN {
 			system("cp \"" devices[device]["newdatafile"] "\" \"" olddatafile "\"")
 		}
 	}
-	#system("rm -r " tmpdir)
+	system("rm -r " tmpdir)
 	exit 0
 }
