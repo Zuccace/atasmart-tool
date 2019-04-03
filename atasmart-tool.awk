@@ -19,9 +19,10 @@ function escapebad(string) {
 }
 
 function mktempfile() {
-	"mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\" || echo -n 0" | getline
-	close("mktemp --tmpdir=\"" tmpdir "\" \"" this ".XXXXXX.tmp\"")
-	if ($0 =! "0") return $0; else return 0
+	mktempcmd = "mktemp --tmpdir=\"" tmpdir "\" \"data.XXXXXX.tmp\" || echo -n 0"
+	mktempcmd | getline
+	close(mktempcmd)
+	if ($0 != "0") return $0; else return 0
 }
 
 function issmart(disk) {
@@ -74,46 +75,46 @@ function createsmartdata(disk,format) {
         		# This is certainly a hack to parse the output of skdump.
         		# What's worse, the output of skdump might change.
 				# However, we're trying our best to avoid little changes.
-			if (attrlist) {
-				if ($1 ~ /^(1|5|7|1[013]|18[12478]|19[6789]|201|250)$/) { # <-- smart attributes to watch on.
-					name = $2
-					for (i=1; i<=5; i++) $i = ""
-					sub(/^\s+/,"")
-					pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
-					#type = substr($0,RSTART + RLENGTH + 1,7)
+				if (attrlist) {
+					if ($1 ~ /^(5|7|1[013]|18[12478]|19[6789]|250)$/) { # <-- smart attributes to watch on.
+						name = $2
+						for (i=1; i<=5; i++) $i = ""
+						sub(/^\s+/,"")
+						pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
+						#type = substr($0,RSTART + RLENGTH + 1,7)
+					}
 				}
-			}
-			else if ($1 == "ID#") {
-				attrlist = 1
-				continue
-			}
-		 	else {
-				name = tolower(substr($0,1,match($0,/:/) - 1))
-				gsub(/\s+/,"_",name)
-				switch (name) {
-					case "size":
-						pretty = $2
-						break
-					case "serial":
-						pretty = $2
-						gsub(/^\[|\]$/,"",pretty)
-					case "overall_status":
-						name = "status"
-						pretty = $3
-						break
-					case /^(model|powered_on)$/:
-						pretty = substr($0,match($0,/:/) + 2)
-						break
-					case "bad_sectors":
-						pretty = $3
-						break
-						
+				else if ($1 == "ID#") {
+					attrlist = 1
+					continue
 				}
-				if (pretty != "") devices[disk][name] = pretty
-			}
-			if (pretty != "") print name,pretty >> datafile
-			name = ""
-			pretty = ""
+		 		else {
+					name = tolower(substr($0,1,match($0,/:/) - 1))
+					gsub(/\s+/,"_",name)
+					switch (name) {
+						case "size":
+							pretty = $2
+							break
+						case "serial":
+							pretty = $2
+							gsub(/^\[|\]$/,"",pretty)
+							break
+						case "overall_status":
+							name = "status"
+							pretty = $3
+							break
+						case /^(model|powered_on)$/:
+							pretty = substr($0,match($0,/:/) + 2)
+							break
+						case "bad_sectors":
+							pretty = $3
+							break
+					}
+					if (pretty != "") devices[disk][name] = pretty
+				}
+				if (pretty != "") print name,pretty >> datafile
+				name = ""
+				pretty = ""
         	}
         	close(skdump " " disk)
         }
@@ -142,7 +143,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.1-alpha2"
+	version = "0.0.1-alpha3"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
@@ -173,6 +174,7 @@ BEGIN {
 	# Let's set some sane defaults
 	skdump = "skdump"
 	sktest = "sktest"
+	smartdatadir = "/var/lib/" this "/"
 	sleep = 5
 	gap = 5
 	report = 1
@@ -191,7 +193,7 @@ BEGIN {
 			print "Without --test the action is 'monitor', unless no test is running then it's same as running 'skdump' without arguments on device(s)\n"
 			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same." 
 			print "--gap <n>\n\tdetermines the interval at which to print the progress percentage status. Default: " gap "%. Set to 0 to disable printing progress indicator."
-			print "--sleep <n>\n\tTime to sleep in seconds between pollings."
+			print "--sleep <n>\n\ttime to sleep in seconds between pollings."
 			print "--log\n\tChanges output to log friendly format."
 			print "--[no-]summary\n\tPrint (or omit) report at the end of test. Note: with '--test monitor' report printing is always disabled, since " this " can't know the smart values before the test(s) were started."
 			exit 0
@@ -247,6 +249,7 @@ BEGIN {
 	} else if (tt ~ /^(quick|short|long|extended)$/) {
 		if (tt == "long") tt = "extended"
 		else if (tt == "quick") tt = "short"
+
 		if (report) for (device in devices) {
 			devices[device]["datafile"] = createsmartdata(device)
 			totmbytes += devices[device]["size"]
@@ -266,7 +269,7 @@ BEGIN {
 				else if (left <= P - gap || left == 0 && left < P) { 
 					P = left
 					devices[device]["progress"] = left
-					if (logformat) print device ": %2d%%",100 - P
+					if (logformat) printf device ": %2d%%\n",100 - P
 					else refresh = 1
 				}
 			}	
@@ -283,13 +286,19 @@ BEGIN {
 	}
 
 	if (report && tt != "monitor") {
+		if (system("test -d \"" smartdatadir "\"") > 0) system("mkdir -p \"" smartdatadir "\"")
 		for (device in devices) {
+			# TODO: add dates to filenames?
 			devices[device]["newdatafile"] = createsmartdata(device)
+			olddatafile = smartdatadir devices[device]["serial"] ".txt"
 			print "\nDevice: " device " " devices[device]["model"] " " devices[device]["size"] / 1024 "GB - Status: " devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
 			print "smartdiff (if any):"
-			system(diffcmd " \"" devices[device]["datafile"] "\" \"" devices[device]["newdatafile"] "\"")
+			if (system("test -r \"" olddatafile "\"") == 0) compare = olddatafile
+			else compare = devices[device]["datafile"] # Aka at the start of test.
+			system(diffcmd " \"" compare "\" \"" devices[device]["newdatafile"] "\"")
+			system("cp \"" devices[device]["newdatafile"] "\" \"" olddatafile "\"")
 		}
 	}
-	system("rm -r " tmpdir)
+	#system("rm -r " tmpdir)
 	exit 0
 }
