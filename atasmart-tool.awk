@@ -12,6 +12,10 @@ function errexit(msg) {
 	exit 1
 }
 
+function clear() {
+	printf "\033c" # VT100 command to reset/clear terminal.
+}
+
 function escapebad(string) {
 	# For shell...
 	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
@@ -126,13 +130,13 @@ function testprogress(disk) {
 	while ((pollcmd | getline) > 0) {
 		if (/^Percent Self-Test Remaining: /) break
 	}
-    close(pollcmd)
+	close(pollcmd)
 	lf = strtonum($NF)
 	sub(/%/,"",lf)
 
-    # Since Progress varies from 90 to 0 (% left)
-    # We'll convert the 90 step (9 really) into percents
-    # what is what the rest of the script expects.
+	# Since Progress varies from 90 to 0 (% left)
+	# We'll convert the 90 step (9 really) into percents
+	# what is what the rest of the script expects.
 	return lf * ( 1 / 0.9 )
 }
 
@@ -259,6 +263,12 @@ BEGIN {
 		for (device in devices) system(sktest " " device " " tt)
 	} else counttotsize() # We're just monitoring smart tests.
 
+	if (logformat != 1) {
+		clear()
+		# TODO: Be more descriptive?
+		print "Please wait..."
+	}
+	
 	while (1) {
 		totprogress = 0
 		for (device in devices) {
@@ -276,7 +286,7 @@ BEGIN {
 			totprogress += ( 100 - P ) * devices[device]["size"] / totmbytes
 		}
 		if (refresh) {
-			printf "\033c" # VT100 command to reset/clear terminal.
+			clear()
 			for (device in devices) printf device ":\t%2d%%\n",100 - devices[device]["progress"]
 			printf "\nTotal:\t\t%3d%%\n\n",totprogress
 			refresh = 0
@@ -289,6 +299,7 @@ BEGIN {
 		if (system("test -d \"" smartdatadir "\"") > 0) system("mkdir -p \"" smartdatadir "\"")
 		for (device in devices) {
 			# TODO: add dates to filenames?
+			# Also get rid of temporary files althogether.
 			devices[device]["newdatafile"] = createsmartdata(device)
 			olddatafile = smartdatadir devices[device]["serial"] ".txt"
 			print "\nDevice: " device " " devices[device]["model"] " " devices[device]["size"] / 1024 "GB - Status: " devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
@@ -298,6 +309,7 @@ BEGIN {
 			system(diffcmd " \"" compare "\" \"" devices[device]["newdatafile"] "\"")
 			system("cp \"" devices[device]["newdatafile"] "\" \"" olddatafile "\"")
 		}
+		print "Total bytes on disks: " totmbytes / 1024 "GiB."
 	}
 	system("rm -r " tmpdir)
 	exit 0
