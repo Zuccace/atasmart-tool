@@ -380,7 +380,7 @@ BEGIN {
 	if (report && tt != "monitor") {
 		for (device in devices) {
 			getsmartdata(device,"newdata")
-			smartdatafile = smartdatadir devices[device]["newdata"]["serial"] ".smart"
+			smartdatafile = smartdatadir devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"] ".smart"
 			print "\nDevice: " device " " devices[device]["newdata"]["model"] " " devices[device]["newdata"]["size"] / 1024 "GB - Status: " devices[device]["newdata"]["status"] " - age: " devices[device]["newdata"]["powered_on"] " - Bad sectors: " devices[device]["newdata"]["bad_sectors"]
 
 			if (system("test -r \"" smartdatafile "\"") == 0) {
