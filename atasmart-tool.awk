@@ -78,7 +78,7 @@ function createsmartdata(disk,format) {
         	while (skdump " " disk | getline) {
         		# This is certainly a hack to parse the output of skdump.
         		# What's worse, the output of skdump might change.
-				# However, we're trying our best to avoid little changes.
+			# However, we're trying our best to avoid little changes.
 				if (attrlist) {
 					if ($1 ~ /^(5|7|1[013]|18[12478]|19[6789]|250)$/) { # <-- smart attributes to watch on.
 						name = $2
