@@ -149,7 +149,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.2-alpha3"
+	version = "0.0.2-alpha4"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
@@ -304,7 +304,7 @@ BEGIN {
 		for (device in devices) {
 			getsmartdata(device,"newdata")
 			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
-			print "\nDevice: " device " " devices[device]["newdata"]["model"] " " devices[device]["newdata"]["size"] / 1024 "GB - Status: " devices[device]["newdata"]["status"] " - age: " devices[device]["newdata"]["powered_on"] " - Bad sectors: " devices[device]["newdata"]["bad_sectors"]
+			print "Device: " device " " devices[device]["newdata"]["model"] " " devices[device]["newdata"]["size"] / 1024 "GB - Status: " devices[device]["newdata"]["status"] " - age: " devices[device]["newdata"]["powered_on"] " - Bad sectors: " devices[device]["newdata"]["bad_sectors"]
 
 			if (system("test -r " escapebad(smartdatafile)) == 0) {
 				olddata = "old"
