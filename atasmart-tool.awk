@@ -310,9 +310,6 @@ BEGIN {
 
 	# We're here if --test was passed correctly.
 
-	if (logformat) diffcmd = "diff --color=never --text --suppress-common-lines"
-	else diffcmd = "diff --color=always --text --suppress-common-lines"
-
 	# Create an array of devices and set starting value for progress.
 	j = 1
 	while (i < ARGC) {
