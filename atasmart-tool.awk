@@ -64,7 +64,7 @@ function counttotsize() {
 		}
 		close(skdump " " device)
 		totmbytes += mbytes
-		devices[device]["size"] = mbytes
+		devices[device]["sdata"]["size"] = mbytes
 	}
 }
 
@@ -127,15 +127,19 @@ function createsmartdata(disk,format) {
 	return datafile
 }
 
-function getsmartdata(disk,attribute) {
-	# If value is set then return the attribute... TODO
+function getsmartdata(disk,dataset) {
 	attrlist = 0
-	while ((skdump " " disk | getline) > 0) {
+
+	if (system("test -b " disk) == 0) dumpcmd = skdump " " disk
+	else dumpcmd = skdump " --load=" disk # Load raw smart data from file instead
+	
+	while ((dumpcmd | getline) > 0) {
 		# This is certainly a hack to parse the output of skdump.
 		# What's worse, the output of skdump might change.
 		# However, we're trying our best to avoid little changes.
 		if (attrlist) {
 			if ($1 ~ /^(5|7|1[013]|18[12478]|19[6789]|250)$/) { # <-- smart attributes to watch on.
+										# Not nice when hardcoded... TODO.
 				name = $2
 				for (i=1; i<=5; i++) $i = ""
 				sub(/^\s+/,"")
@@ -174,15 +178,25 @@ function getsmartdata(disk,attribute) {
 			}
 		}
 		if (pretty != "") {
-			attrs[name] = pretty
+			devices[device][dataset][name] = pretty
+			#print name,devices[device][dataset][name]
 			name = ""
 			pretty = ""
 		}
 	}
-	close(skdump " " disk)
-	return attrs
+	close(dumpcmd)
 }
 
+function file2arr(file,	a) {
+	# a is local and should not be set.
+	while ((getline < file) > 0) {
+		key = $1
+		sub($1 " ","")
+		a[key] = $0
+	}
+	close(file)
+	return a
+}
 
 function testprogress(disk) {
 	pollcmd = skdump " " disk
@@ -206,7 +220,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.1-alpha3"
+	version = "0.0.2-alpha1"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
@@ -259,6 +273,7 @@ BEGIN {
 			print "--sleep <n>\n\ttime to sleep in seconds between pollings."
 			print "--log\n\tChanges output to log friendly format."
 			print "--[no-]summary\n\tPrint (or omit) report at the end of test. Note: with '--test monitor' report printing is always disabled, since " this " can't know the smart values before the test(s) were started."
+			print "--savedata\n\tSave smart data after the test to compare smart data in later runs."
 			exit 0
 		} else if (arg == "--test") {
 			i++
@@ -278,10 +293,22 @@ BEGIN {
 		}
 		else if (arg == "--summary") report = 1
 		else if (arg == "--no-summary") report = 0
+		else if (arg == "--savedata") savedata = 1
 		else errexit("I don't know what to do with this '" arg "' -switch of yours. You may need --help. Aborting... :(")
 	}
 
 	if (ARGV[i] == "") errexit("No devices specified.")
+
+	if (tt == "") { # Only dump smart data and exit since no test type was specified.
+		for (i = 1; i < ARGC; i++) {
+			print ""
+			if (system(skdump " " ARGV[i]) > 0) e = 1
+		}
+		if (e) errexit("\nSome/all skdump processes exited with non-zero exit code")
+		exit 0
+	}
+
+	# We're here if --test was passed correctly.
 
 	if (logformat) diffcmd = "diff --color=never --text --suppress-common-lines"
 	else diffcmd = "diff --color=always --text --suppress-common-lines"
@@ -296,26 +323,22 @@ BEGIN {
 		if (issmart(device)) {
 			devices[device]["progress"] = 100 + gap + 1
 			j++
-		} else warn("Skipping '" device "'...")
+		} else warn("Skipping '" device "', since it does not seem to have smart cabability.")
 		i++
 	}
+
 	if (j == 1) errexit("Not a single suitable device left. Exiting...")
+
+	# Self explanatory.
 	numdevices = j - 1
 
-	if (tt == "") { # Only dump smart data and exit.
-		for (i = 1; i < ARGC; i++) {
-			print ""
-			if (system(skdump " " ARGV[i]) > 0) e = 1
-		}
-		if (e) errexit("Some/all skdump processes exited with non-zero exit code")
-		exit 0
-	} else if (tt ~ /^(quick|short|long|extended)$/) {
+	if (tt ~ /^(quick|short|long|extended)$/) {
 		if (tt == "long") tt = "extended"
 		else if (tt == "quick") tt = "short"
 
 		if (report) for (device in devices) {
-			devices[device]["datafile"] = createsmartdata(device)
-			totmbytes += devices[device]["size"]
+			getsmartdata(device,"sdata")
+			totmbytes += devices[device]["sdata"]["size"]
 		} else counttotsize()
 
 		# Run the tests:
@@ -328,7 +351,7 @@ BEGIN {
 		print "Please wait..."
 	}
 
-	while (1) {
+	while (1) { # Main loop which displays the progress.
 		totprogress = 0
 		for (device in devices) {
 			P = devices[device]["progress"]
@@ -342,7 +365,7 @@ BEGIN {
 					else refresh = 1
 				}
 			}
-			totprogress += ( 100 - P ) * devices[device]["size"] / totmbytes
+			totprogress += ( 100 - P ) * devices[device]["sdata"]["size"] / totmbytes
 		}
 		if (refresh) {
 			clear()
@@ -352,24 +375,35 @@ BEGIN {
 		}
 		if (totprogress >= 100) break
 		system("sleep " sleep "s") # I guess awk can't do any better...
-	}
+	} # Main loop END
 
 	if (report && tt != "monitor") {
-		if (system("test -d \"" smartdatadir "\"") > 0) system("mkdir -p \"" smartdatadir "\"")
 		for (device in devices) {
-			# TODO: add dates to filenames?
-			# Also get rid of temporary files althogether.
-			devices[device]["newdatafile"] = createsmartdata(device)
-			olddatafile = smartdatadir devices[device]["serial"] ".txt"
-			print "\nDevice: " device " " devices[device]["model"] " " devices[device]["size"] / 1024 "GB - Status: " devices[device]["status"] " - age: " devices[device]["powered_on"] " - Bad sectors: " devices[device]["bad_sectors"]
-			print "smartdiff (if any):"
-			if (system("test -r \"" olddatafile "\"") == 0) compare = olddatafile
-			else compare = devices[device]["datafile"] # Aka at the start of test.
-			system(diffcmd " \"" compare "\" \"" devices[device]["newdatafile"] "\"")
-			system("cp \"" devices[device]["newdatafile"] "\" \"" olddatafile "\"")
+			getsmartdata(device,"newdata")
+			smartdatafile = smartdatadir devices[device]["newdata"]["serial"] ".smart"
+			print "\nDevice: " device " " devices[device]["newdata"]["model"] " " devices[device]["newdata"]["size"] / 1024 "GB - Status: " devices[device]["newdata"]["status"] " - age: " devices[device]["newdata"]["powered_on"] " - Bad sectors: " devices[device]["newdata"]["bad_sectors"]
+
+			if (system("test -r \"" smartdatafile "\"") == 0) {
+				olddata = "old"
+				getsmartdata(olddatafile,olddata)
+			}
+			else olddata = "sdata"
+
+			# Data comparison:
+			for (attribute in devices[device][olddata]) {
+				oldattr = devices[device][olddata][attribute]
+				# TODO 'continue' if attribute is non critical
+				newattr = devices[device]["newdata"][attribute]
+				if (newattr != oldattr) print "WARNING: " attribute " for " device "  changed! " oldattr " -> " newattr
+			}
+
+			# Copy smart data into filesystem if requested.
+			if (savedata) {
+				if (system("test -r " smartdatafile) == 0) system("rm " smartdatafile)
+				system(skdump " --save=" smartdatafile " " device)
+			}
 		}
 		print "\nTotal bytes on disks: " totmbytes / 1024 "GiB."
 	}
-	system("rm -r " tmpdir)
 	exit 0
 }
