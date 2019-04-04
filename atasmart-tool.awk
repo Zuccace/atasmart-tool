@@ -315,7 +315,7 @@ BEGIN {
 			# Data comparison:
 			for (attribute in devices[device][olddata]) {
 				oldattr = devices[device][olddata][attribute]
-				# TODO 'continue' if attribute is non critical
+				if (oldattr ~ /device|type|size/) continue
 				newattr = devices[device]["newdata"][attribute]
 				if (newattr != oldattr) print "WARNING: " attribute " for " device "  changed! " oldattr " -> " newattr
 			}
