@@ -70,7 +70,7 @@ function counttotsize() {
 
 function createsmartdata(disk,format) {
 	datafile = mktempfile()
-	if (format == "full") {
+	if (format == "full") { # Do we need this, ever?
 		cmd = skdump " \"" disk "\""
 		if (exec2file(cmd,datafile) == 0) warn("Command: " cmd "\n ... exit status > 0.")
         } else {
