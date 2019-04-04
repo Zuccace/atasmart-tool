@@ -308,7 +308,7 @@ BEGIN {
 
 			if (system("test -r " escapebad(smartdatafile)) == 0) {
 				olddata = "old"
-				getsmartdata(olddatafile,olddata)
+				getsmartdata(smartdatafile,olddata)
 			}
 			else olddata = "sdata"
 
