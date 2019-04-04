@@ -22,10 +22,15 @@ function escapebad(string) {
 	return "'" string "'"
 }
 
+function removebad(string) {
+	gsub(/([^\.a-zA-Z0-9\/_-])+/,"_",string)
+	return string
+}
+
 function issmart(disk) {
 	#safedisk = escapebad(disk)
-	if (system("test -r \"" disk "\"") == 0) {
-		if (system(skdump " --can-smart \"" disk "\" > /dev/null 2>&1") == 0) return 1
+	if (system("test -r " escapebad(disk)) == 0) {
+		if (system(skdump " --can-smart " escapebad(disk) " > /dev/null 2>&1") == 0) return 1
 		else {
 			warn("Device '" disk "' isn't smart capable.")
 			return 0
@@ -53,8 +58,8 @@ function counttotsize() {
 function getsmartdata(disk,dataset) {
 	attrlist = 0
 
-	if (system("test -b " disk) == 0) dumpcmd = skdump " " disk
-	else dumpcmd = skdump " --load=" disk # Load raw smart data from file instead
+	if (system("test -b " escapebad(disk)) == 0) dumpcmd = skdump " " escapebad(disk)
+	else dumpcmd = skdump " --load=" escapebad(disk) # Load raw smart data from file instead
 	
 	while ((dumpcmd | getline) > 0) {
 		# This is certainly a hack to parse the output of skdump.
@@ -142,7 +147,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.2-alpha2"
+	version = "0.0.2-alpha3"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
@@ -296,10 +301,10 @@ BEGIN {
 	if (report && tt != "monitor") {
 		for (device in devices) {
 			getsmartdata(device,"newdata")
-			smartdatafile = smartdatadir devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"] ".smart"
+			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
 			print "\nDevice: " device " " devices[device]["newdata"]["model"] " " devices[device]["newdata"]["size"] / 1024 "GB - Status: " devices[device]["newdata"]["status"] " - age: " devices[device]["newdata"]["powered_on"] " - Bad sectors: " devices[device]["newdata"]["bad_sectors"]
 
-			if (system("test -r \"" smartdatafile "\"") == 0) {
+			if (system("test -r " escapebad(smartdatafile)) == 0) {
 				olddata = "old"
 				getsmartdata(olddatafile,olddata)
 			}
@@ -315,8 +320,8 @@ BEGIN {
 
 			# Copy smart data into filesystem if requested.
 			if (savedata) {
-				if (system("test -r " smartdatafile) == 0) system("rm " smartdatafile)
-				system(skdump " --save=" smartdatafile " " device)
+				if (system("test -r " escapebad(smartdatafile)) == 0) system("rm " smartdatafile)
+				system(skdump " --save=" escapebad(smartdatafile) " " escapebad(device))
 			}
 		}
 		print "\nTotal bytes on disks: " totmbytes / 1024 "GiB."
