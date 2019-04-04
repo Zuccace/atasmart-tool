@@ -313,9 +313,6 @@ BEGIN {
 	if (logformat) diffcmd = "diff --color=never --text --suppress-common-lines"
 	else diffcmd = "diff --color=always --text --suppress-common-lines"
 
-	"mktemp -d --tmpdir \"" this ".XXXXXX.tmp\"" | getline tmpdir
-        close("mktemp -d --tmpdir \"" this ".XXXXXX.tmp\"" )
-
 	# Create an array of devices and set starting value for progress.
 	j = 1
 	while (i < ARGC) {
