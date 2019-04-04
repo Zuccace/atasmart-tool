@@ -102,7 +102,6 @@ function getsmartdata(disk,dataset) {
 		}
 		if (pretty != "") {
 			devices[device][dataset][name] = pretty
-			#print name,devices[device][dataset][name]
 			name = ""
 			pretty = ""
 		}
