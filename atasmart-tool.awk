@@ -309,7 +309,7 @@ BEGIN {
 			system(diffcmd " \"" compare "\" \"" devices[device]["newdatafile"] "\"")
 			system("cp \"" devices[device]["newdatafile"] "\" \"" olddatafile "\"")
 		}
-		print "Total bytes on disks: " totmbytes / 1024 "GiB."
+		print "\nTotal bytes on disks: " totmbytes / 1024 "GiB."
 	}
 	system("rm -r " tmpdir)
 	exit 0
