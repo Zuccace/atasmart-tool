@@ -19,7 +19,7 @@ function clear() {
 function escapebad(string) {
 	# For shell... 
 	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
-	return string
+	return "'" string "'"
 }
 
 function issmart(disk) {
