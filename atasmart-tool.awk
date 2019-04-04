@@ -17,16 +17,9 @@ function clear() {
 }
 
 function escapebad(string) {
-	# For shell...
+	# For shell... 
 	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
 	return string
-}
-
-function mktempfile() {
-	mktempcmd = "mktemp --tmpdir=\"" tmpdir "\" \"data.XXXXXX.tmp\" || echo -n 0"
-	mktempcmd | getline
-	close(mktempcmd)
-	if ($0 != "0") return $0; else return 0
 }
 
 function issmart(disk) {
@@ -43,17 +36,6 @@ function issmart(disk) {
 	}
 }
 
-# This is a bad function. Needs to go.
-function exec2file(cmd,file) {
-	#safefile = escapebad(file)
-	if (system("test -w \"" file "\"") == 0) {
-		if (system(cmd " >> " file) == 0) return file
-		else {
-			return 0
-		}
-	} else return 0
-}
-
 function counttotsize() {
 	for (device in devices) {
 		while ((skdump " " device | getline) > 0) {
@@ -66,65 +48,6 @@ function counttotsize() {
 		totmbytes += mbytes
 		devices[device]["sdata"]["size"] = mbytes
 	}
-}
-
-function createsmartdata(disk,format) {
-	datafile = mktempfile()
-	if (format == "full") { # Do we need this, ever?
-		cmd = skdump " \"" disk "\""
-		if (exec2file(cmd,datafile) == 0) warn("Command: " cmd "\n ... exit status > 0.")
-        } else {
-        	attrlist = 0
-        	while (skdump " " disk | getline) {
-        		# This is certainly a hack to parse the output of skdump.
-        		# What's worse, the output of skdump might change.
-			# However, we're trying our best to avoid little changes.
-				if (attrlist) {
-					if ($1 ~ /^(5|7|1[013]|18[12478]|19[6789]|250)$/) { # <-- smart attributes to watch on.
-						name = $2
-						for (i=1; i<=5; i++) $i = ""
-						sub(/^\s+/,"")
-						pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
-						#type = substr($0,RSTART + RLENGTH + 1,7)
-					}
-				}
-				else if ($1 == "ID#") {
-					attrlist = 1
-					continue
-				}
-		 		else {
-					name = tolower(substr($0,1,match($0,/:/) - 1))
-					gsub(/\s+/,"_",name)
-					switch (name) {
-						case "size":
-							pretty = $2
-							break
-						case "serial":
-							pretty = $2
-							gsub(/^\[|\]$/,"",pretty)
-							break
-						case "overall_status":
-							name = "status"
-							pretty = $3
-							break
-						case /^(model|powered_on)$/:
-							pretty = substr($0,match($0,/:/) + 2)
-							break
-						case "bad_sectors":
-							pretty = $3
-							break
-					}
-				}
-				if (pretty != "") {
-					print name,pretty >> datafile # Pushing to temporary file. Get rid of this.
-					devices[disk][name] = pretty
-					name = ""
-					pretty = ""
-				}
-        	}
-        	close(skdump " " disk)
-        }
-	return datafile
 }
 
 function getsmartdata(disk,dataset) {
