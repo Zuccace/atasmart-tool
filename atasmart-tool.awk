@@ -24,6 +24,8 @@ function escapebad(string) {
 
 function removebad(string) {
 	gsub(/([^\.a-zA-Z0-9\/_-])+/,"_",string)
+	if (substr(string,1,1) == "_") string = substr(string,2)
+	if (substr(string,length(string)) == "_") string = substr(string,1,length(string)-1)
 	return string
 }
 
