@@ -1,5 +1,5 @@
 ## atasmart-tool
-#### Aka. ”Suddenly I had changed simple parser to a code mess and even the language chosen isn't fit for the task.”
+#### Aka. ”Suddenly I had changed simple parser to a **code mess** and even the language chosen _isn't_ fit for the task.”
 
 
 ### Before you go further...
