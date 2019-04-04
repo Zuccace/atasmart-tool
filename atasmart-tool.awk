@@ -114,11 +114,13 @@ function createsmartdata(disk,format) {
 							pretty = $3
 							break
 					}
-					if (pretty != "") devices[disk][name] = pretty
 				}
-				if (pretty != "") print name,pretty >> datafile
-				name = ""
-				pretty = ""
+				if (pretty != "") {
+					print name,pretty >> datafile # Pushing to temporary file. Get rid of this.
+					devices[disk][name] = pretty
+					name = ""
+					pretty = ""
+				}
         	}
         	close(skdump " " disk)
         }
