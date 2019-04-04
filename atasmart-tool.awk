@@ -1,6 +1,6 @@
 #!/usr/bin/gawk --exec
 
-# vim: set noet ci pi sts=0 sw=4 ts=4 : 
+# vim: set noet ci pi sts=0 sw=4 ts=4 :
 
 
 function warn(msg) {
@@ -127,6 +127,63 @@ function createsmartdata(disk,format) {
 	return datafile
 }
 
+function getsmartdata(disk,attribute) {
+	# If value is set then return the attribute... TODO
+	attrlist = 0
+	while ((skdump " " disk | getline) > 0) {
+		# This is certainly a hack to parse the output of skdump.
+		# What's worse, the output of skdump might change.
+		# However, we're trying our best to avoid little changes.
+		if (attrlist) {
+			if ($1 ~ /^(5|7|1[013]|18[12478]|19[6789]|250)$/) { # <-- smart attributes to watch on.
+				name = $2
+				for (i=1; i<=5; i++) $i = ""
+				sub(/^\s+/,"")
+				pretty = substr($0,0,match($0,/\s0x[0-9a-f]+/) - 1)
+
+				# In case we happen to need old-age/pre-fail...
+				# pre-fail should be taken seriously so maybe work on that at some point?
+				#type = substr($0,RSTART + RLENGTH + 1,7)
+			}
+		}
+		else if ($1 == "ID#") {
+			attrlist = 1
+			continue
+		}
+		else {
+			name = tolower(substr($0,1,match($0,/:/) - 1))
+			gsub(/\s+/,"_",name)
+			switch (name) {
+				case "size":
+					pretty = $2
+					break
+				case "serial":
+					pretty = $2
+					gsub(/^\[|\]$/,"",pretty)
+					break
+				case "overall_status":
+					name = "status"
+					pretty = $3
+					break
+				case /^(model|powered_on)$/:
+					pretty = substr($0,match($0,/:/) + 2)
+					break
+				case "bad_sectors":
+					pretty = $3
+					break
+			}
+		}
+		if (pretty != "") {
+			attrs[name] = pretty
+			name = ""
+			pretty = ""
+		}
+	}
+	close(skdump " " disk)
+	return attrs
+}
+
+
 function testprogress(disk) {
 	pollcmd = skdump " " disk
 	while ((pollcmd | getline) > 0) {
@@ -197,7 +254,7 @@ BEGIN {
 			print "Small wrapper around skdump and sktest, S.M.A.R.T. -tools.\n\n"
 			print this " [--test <quick|short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--[no-]summary]] <device> [device2] .. [deviceN]"
 			print "Without --test the action is 'monitor', unless no test is running then it's same as running 'skdump' without arguments on device(s)\n"
-			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same." 
+			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same."
 			print "--gap <n>\n\tdetermines the interval at which to print the progress percentage status. Default: " gap "%. Set to 0 to disable printing progress indicator."
 			print "--sleep <n>\n\ttime to sleep in seconds between pollings."
 			print "--log\n\tChanges output to log friendly format."
@@ -270,7 +327,7 @@ BEGIN {
 		# TODO: Be more descriptive?
 		print "Please wait..."
 	}
-	
+
 	while (1) {
 		totprogress = 0
 		for (device in devices) {
@@ -278,13 +335,13 @@ BEGIN {
 			if (P > 0) {
 				left = testprogress(device)
 				if (gap == 0) P = left
-				else if (left <= P - gap || left == 0 && left < P) { 
+				else if (left <= P - gap || left == 0 && left < P) {
 					P = left
 					devices[device]["progress"] = left
 					if (logformat) printf device ": %2d%%\n",100 - P
 					else refresh = 1
 				}
-			}	
+			}
 			totprogress += ( 100 - P ) * devices[device]["size"] / totmbytes
 		}
 		if (refresh) {
