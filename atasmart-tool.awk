@@ -195,7 +195,7 @@ BEGIN {
 		} else if (arg == "--help") {
 			print "atasmart-tool v. " version " -- Ilja Sara"
 			print "Small wrapper around skdump and sktest, S.M.A.R.T. -tools.\n\n"
-			print this " [--test <short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--[no-]summary]] <device> [device2] .. [deviceN]"
+			print this " [--test <quick|short|long|extended|monitor> [--gap <1-99>] [--sleep <n>] [--log] [--[no-]summary]] <device> [device2] .. [deviceN]"
 			print "Without --test the action is 'monitor', unless no test is running then it's same as running 'skdump' without arguments on device(s)\n"
 			print "--test <monitor|short|long|extended>\n\tRun a test or monitor a running test. 'long' and 'extended' are the same." 
 			print "--gap <n>\n\tdetermines the interval at which to print the progress percentage status. Default: " gap "%. Set to 0 to disable printing progress indicator."
