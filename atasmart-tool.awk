@@ -304,7 +304,7 @@ BEGIN {
 		for (device in devices) {
 			getsmartdata(device,"newdata")
 			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
-			print "Device: " device " " devices[device]["newdata"]["model"] "\t" devices[device]["newdata"]["size"] / 1024 "GB\tStatus: " devices[device]["newdata"]["status"] "\tBad sectors: " devices[device]["newdata"]["bad_sectors"] "\tage: " devices[device]["newdata"]["powered_on"]
+			print "Device: " device "\t" devices[device]["newdata"]["model"] "\t\t" devices[device]["newdata"]["size"] / 1024 "GB\tStatus: " devices[device]["newdata"]["status"] "\tBad sectors: " devices[device]["newdata"]["bad_sectors"] "\tage: " devices[device]["newdata"]["powered_on"]
 
 			if (system("test -r " escapebad(smartdatafile)) == 0) {
 				olddata = "old"
