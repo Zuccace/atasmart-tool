@@ -17,7 +17,7 @@ function clear() {
 }
 
 function escapebad(string) {
-	# For shell... 
+	# For shell...
 	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
 	return "\"" string "\""
 }
@@ -62,7 +62,7 @@ function getsmartdata(disk,dataset) {
 
 	if (system("test -b " escapebad(disk)) == 0) dumpcmd = skdump " " escapebad(disk)
 	else dumpcmd = skdump " --load=" escapebad(disk) # Load raw smart data from file instead
-	
+
 	while ((dumpcmd | getline) > 0) {
 		# This is certainly a hack to parse the output of skdump.
 		# What's worse, the output of skdump might change.
@@ -185,10 +185,11 @@ BEGIN {
 	gap = 5
 	report = 1
 
+	# Go trough cli switches...
 	for (i = 1; i < ARGC; i++) {
 		arg = ARGV[i]
 
-		if ( substr(arg,1,1) != "-" ) break
+		if ( substr(arg,1,1) != "-" ) break # ... but break the loop as soon as an argument does not start with a dash (-).
 		else if (arg == "--") {
 			i++
 			break
@@ -241,7 +242,7 @@ BEGIN {
 
 	# Create an array of devices and set starting value for progress.
 	j = 1
-	while (i < ARGC) {
+	while (i < ARGC) { # Note: The value of i is what's left from parsing the cli switches.
 		device = ARGV[i]
 		if (issmart(device)) {
 			devices[device]["progress"] = 100 + gap + 1
@@ -296,11 +297,11 @@ BEGIN {
 			printf "\nTotal:\t\t%3d%%\n\n",totprogress
 			refresh = 0
 		}
-		if (totprogress >= 100) break
+		if (totprogress >= 100) break # We break before sleep so avoid unneccessary delay. Otherwise we'd add check of 'totprogress' into the 'while' main loop header.
 		system("sleep " sleep "s") # I guess awk can't do any better...
 	} # Main loop END
 
-	if (report && tt != "monitor") {
+	if (report && tt != "monitor") { # We should allow summary printing when monitoring... TODO
 		for (device in devices) {
 			getsmartdata(device,"newdata")
 			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
@@ -310,7 +311,7 @@ BEGIN {
 				olddata = "old"
 				getsmartdata(smartdatafile,olddata)
 			}
-			else olddata = "sdata"
+			else olddata = "sdata" # No previous smart data found from filesystem. Let's use the data fropm the beginning of the test.
 
 			# Data comparison:
 			for (attribute in devices[device][olddata]) {
