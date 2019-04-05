@@ -315,9 +315,9 @@ BEGIN {
 			# Data comparison:
 			for (attribute in devices[device][olddata]) {
 				oldattr = devices[device][olddata][attribute]
-				if (attribute ~ /device|type|size/) continue
+				if (attribute ~ /device|type|size|powered_on/) continue
 				newattr = devices[device]["newdata"][attribute]
-				if (newattr != oldattr) print "WARNING: " attribute " for " device "  changed! " oldattr " -> " newattr
+				if (newattr != oldattr) print "WARNING: " attribute " for " device " changed! " oldattr " -> " newattr
 			}
 
 			# Copy smart data into filesystem if requested.
