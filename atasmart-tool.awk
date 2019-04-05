@@ -105,6 +105,11 @@ function getsmartdata(disk,dataset) {
 				case "bad_sectors":
 					pretty = $3
 					break
+				case "percent_self-test_remaining":
+					name = "test_remaining"
+					pretty = substr($0,match($0,/:/) + 2)
+					pretty = substr(pretty,1,length(pretty) - 1)
+					break
 			}
 		}
 		if (pretty != "") {
@@ -262,6 +267,7 @@ BEGIN {
 
 		if (report) for (device in devices) {
 			getsmartdata(device,"sdata")
+			if (devices[device]["sdata"]["test_remaining"] > 0) errexit("Smart test is currently running. Won't start a new one. Aborting...")
 			totmbytes += devices[device]["sdata"]["size"]
 		} else counttotsize()
 
