@@ -19,7 +19,7 @@ function clear() {
 function escapebad(string) {
 	# For shell... 
 	gsub(/[^\.a-zA-Z0-9\/_-]/,"\\\\&",string)
-	return "'" string "'"
+	return "\"" string "\""
 }
 
 function removebad(string) {
@@ -149,7 +149,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.2-alpha4"
+	version = "0.0.2-alpha5"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
