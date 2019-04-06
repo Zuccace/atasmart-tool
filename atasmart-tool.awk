@@ -291,7 +291,7 @@ BEGIN {
 				else if (left <= P - gap || left == 0 && left < P) {
 					P = left
 					devices[device]["progress"] = left
-					if (logformat) printf device ": %2d%%\n",100 - P
+					if (logformat) printf tt " smart test - " device ": %2d%%\n",100 - P
 					else refresh = 1
 				}
 			}
@@ -303,7 +303,7 @@ BEGIN {
 			printf "\nTotal:\t\t%3d%%\n\n",totprogress
 			refresh = 0
 		}
-		if (totprogress >= 100) break # We break before sleep so avoid unneccessary delay. Otherwise we'd add check of 'totprogress' into the 'while' main loop header.
+		if (totprogress >= 100) break # We break before sleep to avoid unneccessary delay. Otherwise we'd add check of 'totprogress' into the 'while' main loop header.
 		system("sleep " sleep "s") # I guess awk can't do any better...
 	} # Main loop END
 
@@ -311,8 +311,10 @@ BEGIN {
 		for (device in devices) {
 			getsmartdata(device,"newdata")
 			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
-			print "Device: " device "\t" devices[device]["newdata"]["model"] "\t\t" devices[device]["newdata"]["size"] / 1024 "GB\tStatus: " devices[device]["newdata"]["status"] "\tBad sectors: " devices[device]["newdata"]["bad_sectors"] "\tage: " devices[device]["newdata"]["powered_on"]
-
+			devstats = "Device: " device "\t" devices[device]["newdata"]["model"] "\t\t" devices[device]["newdata"]["size"] / 1024 "GB\tStatus: " devices[device]["newdata"]["status"] "\tBad sectors: " devices[device]["newdata"]["bad_sectors"] "\tage: " devices[device]["newdata"]["powered_on"]
+			if (logformat) gsub(/\t+/," ",devstats) # No tabs for loggers.
+			print devstats
+			
 			if (system("test -r " escapebad(smartdatafile)) == 0) {
 				olddata = "old"
 				getsmartdata(smartdatafile,olddata)
