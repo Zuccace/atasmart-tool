@@ -317,14 +317,14 @@ BEGIN {
 				olddata = "old"
 				getsmartdata(smartdatafile,olddata)
 			}
-			else olddata = "sdata" # No previous smart data found from filesystem. Let's use the data fropm the beginning of the test.
+			else olddata = "sdata" # No previous smart data found from filesystem. Let's use the data from the beginning of the test.
 
 			# Data comparison:
 			for (attribute in devices[device][olddata]) {
 				oldattr = devices[device][olddata][attribute]
 				if (attribute ~ /device|type|size|powered_on/) continue
 				newattr = devices[device]["newdata"][attribute]
-				if (newattr != oldattr) print "WARNING: " attribute " for " device " changed! " oldattr " -> " newattr
+				if (newattr != oldattr) print "!!!: " attribute " for " device " changed! " oldattr " -> " newattr > "/dev/stderr"
 			}
 
 			# Copy smart data into filesystem if requested.
