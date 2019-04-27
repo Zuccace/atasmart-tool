@@ -307,9 +307,16 @@ BEGIN {
 		system("sleep " sleep "s") # I guess awk can't do any better...
 	} # Main loop END
 
+
+	### Final report generation
 	if (report && tt != "monitor") { # We should allow summary printing when monitoring... TODO
+					 # Since _if_ there's smart data already stored (in filesystem),
+					 # we could print the summary by comparing the data aleady present.
+					 # However, saving new data should be disallowed.
+					 # It could cause problems if we have another process running which would also write new data.
 		for (device in devices) {
 			getsmartdata(device,"newdata")
+			# We really should put timestamps on the smart data dump filenames... TODO
 			smartdatafile = smartdatadir removebad(devices[device]["newdata"]["model"] "-" devices[device]["newdata"]["serial"]) ".smart"
 			devstats = "Device: " device "\t" devices[device]["newdata"]["model"] "\t\t" devices[device]["newdata"]["size"] / 1024 "GB\tStatus: " devices[device]["newdata"]["status"] "\tBad sectors: " devices[device]["newdata"]["bad_sectors"] "\tage: " devices[device]["newdata"]["powered_on"]
 			if (logformat) gsub(/\t+/," ",devstats) # No tabs for loggers.
