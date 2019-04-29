@@ -89,12 +89,8 @@ function getsmartdata(disk,dataset) {
 			name = tolower(substr($0,1,match($0,/:/) - 1))
 			gsub(/\s+/,"_",name)
 			switch (name) {
-				case "size":
+				case /^(size|serial)$/:
 					pretty = $2
-					break
-				case "serial":
-					pretty = $2
-					gsub(/^\[|\]$/,"",pretty)
 					break
 				case "overall_status":
 					name = "status"
@@ -114,6 +110,7 @@ function getsmartdata(disk,dataset) {
 			}
 		}
 		if (pretty != "") {
+			gsub(/^\[|\]$/,"",pretty)
 			devices[device][dataset][name] = pretty
 			name = ""
 			pretty = ""
