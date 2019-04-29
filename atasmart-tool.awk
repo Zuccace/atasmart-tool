@@ -60,6 +60,7 @@ function counttotsize() {
 function getsmartdata(disk,dataset) {
 	attrlist = 0
 
+	# Auto indentify if we're querying an actual device or previously dumped data.
 	if (system("test -b " escapebad(disk)) == 0) dumpcmd = skdump " " escapebad(disk)
 	else dumpcmd = skdump " --load=" escapebad(disk) # Load raw smart data from file instead
 
@@ -143,7 +144,7 @@ function testprogress(disk) {
 
 	# Since Progress varies from 90 to 0 (% left)
 	# We'll convert the 90 step (9 really) into percents
-	# what is what the rest of the script expects.
+	# which is what the rest of the script expects.
 	return lf * ( 1 / 0.9 )
 }
 
