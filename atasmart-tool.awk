@@ -57,6 +57,12 @@ function counttotsize() {
 	}
 }
 
+function datestring() {
+	"date +%Y%m%d%H%M%S" | getline date
+	close("date +%Y%m%d%H%M%S")
+	return date
+}
+
 function getsmartdata(disk,dataset) {
 	attrlist = 0
 
