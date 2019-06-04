@@ -256,7 +256,7 @@ BEGIN {
 		if (issmart(device)) {
 			devices[device]["progress"] = 100 + gap + 1
 			j++
-		} else warn("Skipping '" device "', since it does not seem to have smart cabability.")
+		} else warn("Skipping '" device "'.")
 		i++
 	}
 
