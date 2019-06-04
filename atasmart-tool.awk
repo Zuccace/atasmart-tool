@@ -190,8 +190,8 @@ BEGIN {
 	skdump = "skdump"
 	sktest = "sktest"
 	smartdatadir = "/var/lib/" this "/"
-	sleep = 5
-	gap = 5
+	sleep = 60
+	gap = 2
 	report = 1
 
 	# Go trough cli switches...
