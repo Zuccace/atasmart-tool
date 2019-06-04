@@ -158,7 +158,7 @@ function printprogress() {
 }
 
 BEGIN {
-	version = "0.0.2-alpha5"
+	version = "0.0.2-alpha6"
 
 	# Rather complex way to store script file name to 'this'.
 	# Other methods I've found aren't realiable.
