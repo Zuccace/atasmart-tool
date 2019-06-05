@@ -22,6 +22,20 @@ function escapebad(string) {
 	return "\"" string "\""
 }
 
+# Array sorting function
+# Sorts the array in-place, cannot be un-sorted.
+function arrisort(arr) {
+	for (pos in arr) {
+		val = arr[pos]
+		npos = pos - 1
+		while (npos && q[npos] > val) {
+			arr[npos + 1] = q[npos]
+			npos--
+		}
+		arr[npos + 1] = val
+	}
+}
+
 function removebad(string) {
 	gsub(/([^\.a-zA-Z0-9\/_-])+/,"_",string)
 	if (substr(string,1,1) == "_") string = substr(string,2)
