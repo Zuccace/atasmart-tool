@@ -14,7 +14,7 @@ The total percentage of process is calculated in such way that **bigger capacity
 
 ### About
 * [Why?](https://pluspora.com/posts/f61ba1c025c70137cf9f005056264835)
-* ... also some shell laguage would have been better fit for the task, but I had an urge to code awk. Sorry.
+* ... also some shell language would have been better fit for the task, but I had an urge to code awk. Sorry.
 * I have some hopes someone will implement something like this, but in C, Python or (ba)sh.
 
 ### TODO -list  
